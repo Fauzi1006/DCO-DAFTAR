@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCO - Delivery Control System</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --primary-dark: #1a252f;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --success: #27ae60;
+            --active-blue: #3498db;
+            --bg-color: #f4f6f9;
+        }
+        
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR STYLE --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            transition: width 0.3s ease;
+        }
+        .sidebar.collapsed { width: 80px; }
+        
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            background-color: var(--primary-dark);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .logo-container { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 5px; }
+        .logo-icon { stroke: var(--warning); transition: transform 0.3s; }
+        .logo-text { margin: 0; font-size: 1.8rem; letter-spacing: 2px; color: white; font-weight: 800; }
+        .sidebar.collapsed .logo-text { display: none; }
+        .sidebar.collapsed .logo-icon { transform: scale(1.1); margin-left: 0; }
+        .sidebar.collapsed .sidebar-header p { display: none; }
+        .sidebar-header p { margin: 0; font-size: 0.8rem; color: #bdc3c7; }
+
+        .sidebar-menu { list-style: none; padding: 0; margin: 20px 0; }
+        .sidebar-menu li {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .sidebar-menu li:hover { background-color: rgba(255,255,255,0.05); }
+        .sidebar-menu li.active { background-color: var(--primary-dark); border-left-color: var(--warning); font-weight: bold; }
+        
+        .menu-icon { font-size: 1.2rem; min-width: 25px; text-align: center; }
+        .menu-text { transition: opacity 0.3s; }
+        .sidebar.collapsed .menu-text { opacity: 0; display: none; }
+        .sidebar.collapsed .sidebar-menu li { justify-content: center; padding: 15px 0; gap: 0;}
+        .sidebar.collapsed .menu-badge { display: none; }
+        .menu-badge { background-color: var(--danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: auto; }
+
+        /* --- MAIN CONTENT STYLE --- */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .topbar { background: white; padding: 15px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 5; }
+        .toggle-btn { background: none; border: none; font-size: 1.5rem; color: var(--primary); cursor: pointer; padding: 0 10px; }
+        .toggle-btn:hover { color: var(--warning); }
+        
+        .content-area { flex: 1; padding: 25px; overflow-y: auto; display: block; }
+
+        .page-section { display: none; animation: fadeIn 0.3s ease-in; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
+        .card-header-flex h3 { margin: 0; color: var(--primary); }
+        
+        /* DASHBOARD SUMMARY WIDGETS */
+        .summary-grid { display: flex; flex-direction: column; gap: 20px; }
+        .summary-section { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; }
+        .summary-section h4 { margin-top: 0; margin-bottom: 15px; color: var(--primary); border-bottom: 2px solid #ddd; padding-bottom: 8px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;}
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
+        .stat-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-bottom: 3px solid var(--primary);}
+        .stat-card h5 { margin: 0 0 10px 0; font-size: 0.85rem; color: #7f8c8d; text-transform: uppercase; font-weight: 700;}
+        .stat-card span { font-size: 2.2rem; font-weight: bold; color: var(--primary); }
+        .stat-card.timer-card { border-bottom-color: var(--warning); }
+        .stat-card.timer-card span { font-size: 1.8rem; font-family: 'Courier New', Courier, monospace; color: var(--danger);}
+
+        .btn-download { background-color: var(--success); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.85rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .btn-download:hover { background-color: #219653; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        .btn-download:active { transform: translateY(1px); }
+
+        .upload-box { border: 2px dashed #bdc3c7; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; margin-top: 20px;}
+        .upload-box:hover { border-color: var(--success); background-color: #f4fff8; }
+        
+        /* TABLE SETTINGS */
+        .table-responsive { width: 100%; overflow: auto; max-height: 65vh; min-height: 350px; border: 1px solid #eee; border-radius: 4px; background-color: white; }
+        .table-responsive::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-responsive::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        .table-responsive::-webkit-scrollbar-track { background: #f1f1f1; }
+
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; background-color: white; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.85rem; vertical-align: top; }
+        
+        th { background-color: #f1f4f6; font-weight: 600; color: var(--primary); position: sticky; top: 0; z-index: 10; user-select: none; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+        .header-content { display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; }
+        .filter-icon { font-size: 0.7rem; color: #bdc3c7; transition: color 0.2s; }
+        .filter-icon:hover { color: var(--primary); }
+        .filter-icon.active { color: var(--active-blue); font-weight: bold; font-size: 0.85rem; }
+
+        .excel-filter-menu { display: none; position: absolute; top: 100%; left: 0; background-color: white; border: 1px solid #ccc; border-radius: 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); min-width: 220px; max-width: 300px; font-weight: normal; font-size: 0.8rem; color: #333; }
+        .excel-filter-menu.show { display: block; }
+        
+        .filter-search { padding: 8px; border-bottom: 1px solid #eee; background: #fafafa; border-radius: 5px 5px 0 0;}
+        .filter-search input { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem;}
+        
+        .filter-options { max-height: 200px; overflow-y: auto; padding: 5px 8px; }
+        .filter-option-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; }
+        .filter-option-item input { margin: 0; cursor: pointer; }
+        .filter-option-item label { cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+        
+        .filter-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 10px; border-top: 1px solid #eee; background: #fafafa; border-radius: 0 0 5px 5px;}
+        .btn-filter { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;}
+        .btn-apply { background-color: var(--active-blue); color: white; }
+        .btn-clear { background-color: #e0e0e0; color: #333; }
+
+        tr:hover { background-color: #f9f9f9; }
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+        .badge-danger { background: #fadbd8; color: #c0392b; }
+        .badge-warning { background: #fdebd0; color: #d35400; }
+        .badge-type { background: #e8f8f5; color: #16a085; border: 1px solid #1abc9c;}
+        .timer-text { font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 1rem; }
+        .empty-state { text-align: center; color: #7f8c8d; font-style: italic; padding: 40px; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="3" width="15" height="13"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+                <h2 class="logo-text">DCO</h2>
+            </div>
+            <p>Delivery Control</p>
+        </div>
+        <ul class="sidebar-menu">
+            <li id="nav-summary" class="active" onclick="switchPage('summary')">
+                <span class="menu-icon">📊</span>
+                <span class="menu-text">Dashboard Ringkasan</span>
+            </li>
+            <li id="nav-upload" onclick="switchPage('upload')">
+                <span class="menu-icon">📁</span>
+                <span class="menu-text">Upload Data SAP</span>
+            </li>
+            <li id="nav-belum-t1" onclick="switchPage('belum-t1')">
+                <span class="menu-icon">🚨</span>
+                <span class="menu-text">Antrean Masuk</span>
+                <span class="menu-badge" id="badge-belum-t1">0</span>
+            </li>
+            <li id="nav-belum-t2" onclick="switchPage('belum-t2')">
+                <span class="menu-icon">⏳</span>
+                <span class="menu-text">Proses Gudang</span>
+                <span class="menu-badge" id="badge-belum-t2">0</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="topbar">
+            <button class="toggle-btn" onclick="toggleSidebar()" title="Sembunyikan/Tampilkan Menu">☰</button>
+            <span id="timestamp" style="font-weight: bold; color: var(--primary);"></span>
+        </div>
+
+        <div class="content-area" onclick="closeAllFilters()">
+            
+            <div id="page-summary" class="page-section active">
+                
+                <div class="card" style="border-top: 4px solid var(--active-blue);" id="capture-summary-volume">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3>📊 Ringkasan Volume Armada</h3>
+                            <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: #7f8c8d; font-weight: bold;">(KHUSUS MUAT - BROWN PAPER BM 3)</p>
+                        </div>
+                        <button class="btn-download" onclick="captureTable('capture-summary-volume', 'Ringkasan_Volume')">
+                            📸 Download Volume
+                        </button>
+                    </div>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-section" style="border-left: 5px solid var(--danger);">
+                            <h4><span style="font-size: 1.2rem;">🚨</span> Antrean Masuk (Parkir DCO)</h4>
+                            <div class="summary-cards">
+                                <div class="stat-card">
+                                    <h5>Total Armada</h5>
+                                    <span id="sum-t1-total">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <h5>Type: Local</h5>
+                                    <span id="sum-t1-local" style="color: #27ae60;">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <h5>Type: Export</h5>
+                                    <span id="sum-t1-export" style="color: #8e44ad;">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="summary-section" style="border-left: 5px solid var(--warning);">
+                            <h4><span style="font-size: 1.2rem;">⏳</span> Proses Loading Gudang</h4>
+                            <div class="summary-cards">
+                                <div class="stat-card">
+                                    <h5>Total Armada</h5>
+                                    <span id="sum-t2-total">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <h5>Type: Local</h5>
+                                    <span id="sum-t2-local" style="color: #27ae60;">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <h5>Type: Export</h5>
+                                    <span id="sum-t2-export" style="color: #8e44ad;">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top: 4px solid var(--danger);" id="capture-summary-waktu">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3>⏱️ Ringkasan SLA & Kinerja Waktu</h3>
+                            <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: #7f8c8d; font-weight: bold;">(Pantauan Real-Time)</p>
+                        </div>
+                        <button class="btn-download" onclick="captureTable('capture-summary-waktu', 'Ringkasan_Waktu')">
+                            📸 Download Waktu
+                        </button>
+                    </div>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-section" style="border-left: 5px solid var(--danger);">
+                            <h4><span style="font-size: 1.2rem;">🚨</span> Durasi Antrean (Parkir DCO)</h4>
+                            <div class="summary-cards">
+                                <div class="stat-card timer-card">
+                                    <h5>Rata-Rata Tunggu</h5>
+                                    <span id="sum-t1-avg">00:00:00</span>
+                                </div>
+                                <div class="stat-card timer-card">
+                                    <h5 style="color: var(--danger);">Tertahan Terlama</h5>
+                                    <span id="sum-t1-max">00:00:00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="summary-section" style="border-left: 5px solid var(--warning);">
+                            <h4><span style="font-size: 1.2rem;">⏳</span> Durasi Proses Loading</h4>
+                            <div class="summary-cards">
+                                <div class="stat-card timer-card">
+                                    <h5>Rata-Rata Loading</h5>
+                                    <span id="sum-t2-avg">00:00:00</span>
+                                </div>
+                                <div class="stat-card timer-card">
+                                    <h5 style="color: var(--danger);">Loading Terlama</h5>
+                                    <span id="sum-t2-max">00:00:00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-upload" class="page-section">
+                <div class="card" style="border-top: 4px solid var(--success);">
+                    <div class="card-header">
+                        <h3>Tarik Data dari SAP</h3>
+                        <p style="color: #7f8c8d; margin-top: 5px; font-size: 0.9rem;">Upload file Excel (.xlsx, .xls) atau CSV dari sistem SAP Anda.</p>
+                    </div>
+                    <div class="upload-box" onclick="document.getElementById('excelFileInput').click()">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">📄</div>
+                        <h4 style="margin: 0 0 10px 0;">Klik untuk memilih file</h4>
+                        <p style="margin: 0; color: #7f8c8d;">Pilih file laporan transaksi armada (Khusus Muat)</p>
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;">
+                    </div>
+                    <div id="upload-status" style="margin-top: 20px; text-align: center; font-weight: bold; padding: 15px; border-radius: 5px;"></div>
+                </div>
+            </div>
+
+            <div id="page-belum-t1" class="page-section">
+                <div class="card" style="border-top: 4px solid var(--danger);" id="capture-t1">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3>Daftar -> Belum Timbang 1</h3>
+                            <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: var(--danger); font-weight: bold;">(MUAT - BROWN PAPER BM 3)</p>
+                        </div>
+                        <button class="btn-download" onclick="captureTable('capture-t1', 'Antrean_Parkir_DCO')">
+                            📸 Download Tabel
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="table-t1">
+                            <thead>
+                                <tr id="header-row-t1">
+                                    </tr>
+                            </thead>
+                            <tbody id="tbody-belum-t1">
+                                <tr><td colspan="12" class="empty-state">Belum ada data. Silakan upload file terlebih dahulu.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-belum-t2" class="page-section">
+                <div class="card" style="border-top: 4px solid var(--warning);" id="capture-t2">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3>Timbang 1 -> Belum Timbang 2</h3>
+                            <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: var(--warning); font-weight: bold;">(MUAT - BROWN PAPER BM 3)</p>
+                        </div>
+                        <button class="btn-download" onclick="captureTable('capture-t2', 'Proses_Loading_Gudang')">
+                            📸 Download Tabel
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="table-t2">
+                            <thead>
+                                <tr id="header-row-t2">
+                                    </tr>
+                            </thead>
+                            <tbody id="tbody-belum-t2">
+                                <tr><td colspan="12" class="empty-state">Belum ada data. Silakan upload file terlebih dahulu.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI KOLOM & FILTER GLOBAL ---
+        const columnsConfig = [
+            { id: 'no_urut', label: 'No.', filterable: false }, 
+            { id: 'iml', label: 'No IML', filterable: true },
+            { id: 'type', label: 'Type', filterable: true },
+            { id: 'nopol_driver', label: 'Nopol / Driver', filterable: true },
+            { id: 'waktu_kunci', label: 'Waktu Catat', filterable: false }, 
+            { id: 'durasi', label: 'Durasi', filterable: false },
+            { id: 'tujuan_jenis', label: 'Tujuan / Jenis', filterable: true },
+            { id: 'kendaraan', label: 'Kendaraan', filterable: true },
+            { id: 'ekspedisi', label: 'Ekspedisi', filterable: true },
+            { id: 'supplier', label: 'Supplier', filterable: true },
+            { id: 'po_sj', label: 'PO & SJ', filterable: true },
+            { id: 'status', label: 'Status', filterable: false }
+        ];
+
+        window.globalDataT1 = [];
+        window.globalDataT2 = [];
+        window.activeFilters = { 'belum-t1': {}, 'belum-t2': {} };
+
+        // --- FUNGSI CAPTURE TABEL/DASHBOARD MENJADI GAMBAR (DISEMPURNAKAN) ---
+        function captureTable(cardId, fileNamePrefix) {
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "⏳ Memproses...";
+            btn.disabled = true;
+
+            const cardElement = document.getElementById(cardId);
+            const tableResponsive = cardElement.querySelector('.table-responsive');
+            const thElements = cardElement.querySelectorAll('th');
+            
+            let originalOverflow = '';
+            let originalMaxHeight = '';
+
+            // 1. Ekpansi elemen Tabel (jika menangkap area tabel)
+            if (tableResponsive) {
+                originalOverflow = tableResponsive.style.overflow || '';
+                originalMaxHeight = tableResponsive.style.maxHeight || '';
+                tableResponsive.style.overflow = 'visible';
+                tableResponsive.style.maxHeight = 'none';
+            }
+
+            // 2. Matikan Sticky Header
+            thElements.forEach(th => {
+                th.dataset.origPosition = th.style.position || '';
+                th.style.position = 'static';
+            });
+
+            // 3. Sembunyikan tombol download 
+            btn.style.display = 'none';
+
+            // Proses Pengambilan Gambar
+            setTimeout(() => {
+                html2canvas(cardElement, {
+                    scale: 2, 
+                    backgroundColor: "#ffffff",
+                    logging: false,
+                    useCORS: true,
+                    windowWidth: cardElement.scrollWidth,
+                    windowHeight: cardElement.scrollHeight
+                }).then(canvas => {
+                    // KEMBALIKAN SEMUANYA KE KEADAAN SEMULA
+                    if (tableResponsive) {
+                        tableResponsive.style.overflow = originalOverflow;
+                        tableResponsive.style.maxHeight = originalMaxHeight;
+                    }
+                    thElements.forEach(th => { th.style.position = th.dataset.origPosition; });
+                    btn.style.display = 'flex';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+
+                    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
+                    const timeStr = new Date().toTimeString().slice(0,8).replace(/:/g, "");
+                    const link = document.createElement('a');
+                    link.download = `DCO_${fileNamePrefix}_${dateStr}_${timeStr}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }).catch(err => {
+                    console.error("Gagal mendownload:", err);
+                    alert("Terjadi kesalahan saat memproses gambar.");
+                    if (tableResponsive) {
+                        tableResponsive.style.overflow = originalOverflow;
+                        tableResponsive.style.maxHeight = originalMaxHeight;
+                    }
+                    thElements.forEach(th => { th.style.position = th.dataset.origPosition; });
+                    btn.style.display = 'flex';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            }, 500); 
+        }
+
+        // --- RENDER HEADER TABEL ---
+        function renderHeaders() {
+            ['belum-t1', 'belum-t2'].forEach(tableType => {
+                const tr = document.getElementById(tableType === 'belum-t1' ? 'header-row-t1' : 'header-row-t2');
+                tr.innerHTML = '';
+                columnsConfig.forEach(col => {
+                    const th = document.createElement('th');
+                    if (col.id === 'no_urut') th.style.textAlign = 'center';
+                    let displayLabel = col.label;
+                    if (col.id === 'waktu_kunci') displayLabel = tableType === 'belum-t1' ? 'Waktu Daftar' : 'Waktu Timbang 1';
+
+                    if (col.filterable) {
+                        const isActive = activeFilters[tableType][col.id] && activeFilters[tableType][col.id].length > 0;
+                        const iconClass = isActive ? 'filter-icon active' : 'filter-icon';
+                        const iconSymbol = isActive ? '♈' : '▼'; 
+
+                        th.innerHTML = `
+                            <div class="header-content" onclick="toggleFilter(event, '${tableType}', '${col.id}')">
+                                <span>${displayLabel}</span>
+                                <span class="${iconClass}" id="icon-${tableType}-${col.id}">${iconSymbol}</span>
+                            </div>
+                            <div class="excel-filter-menu" id="menu-${tableType}-${col.id}" onclick="event.stopPropagation()"></div>
+                        `;
+                    } else { th.innerText = displayLabel; }
+                    tr.appendChild(th);
+                });
+            });
+        }
+        renderHeaders();
+
+        // --- LOGIKA TOGGLE SIDEBAR ---
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+        function switchPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(page => page.classList.remove('active'));
+            document.querySelectorAll('.sidebar-menu li').forEach(menu => menu.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.getElementById('nav-' + pageId).classList.add('active');
+            closeAllFilters();
+        }
+
+        // --- FUNGSI FORMAT WAKTU MS KE JAM:MENIT:DETIK ---
+        function formatMs(ms) {
+            if (ms < 0) return "00:00:00";
+            const diffHrs = Math.floor(ms / (1000 * 60 * 60));
+            const diffMins = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const diffSecs = Math.floor((ms % (1000 * 60)) / 1000);
+            return String(diffHrs).padStart(2, '0') + ':' + String(diffMins).padStart(2, '0') + ':' + String(diffSecs).padStart(2, '0');
+        }
+
+        // --- JAM & TIMER REALTIME ---
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('timestamp').innerText = now.toLocaleString('id-ID');
+
+            document.querySelectorAll('.elapsed-time').forEach(el => {
+                const startTimeStr = el.getAttribute('data-start');
+                if (!startTimeStr || startTimeStr === "-") return;
+                const startTime = new Date(startTimeStr.replace(' ', 'T'));
+                if (isNaN(startTime.getTime())) { el.innerHTML = `<span class="timer-text">Error</span>`; return; }
+
+                const diffMs = now.getTime() - startTime.getTime();
+                if (diffMs < 0) { el.innerHTML = `<span class="timer-text">00:00:00</span>`; return; }
+
+                const formattedTime = formatMs(diffMs);
+                let textColor = "var(--primary)";
+                if (diffMs >= 7200000) textColor = "var(--danger)"; 
+                else if (diffMs >= 3600000) textColor = "var(--warning)"; 
+
+                el.innerHTML = `<span class="timer-text" style="color:${textColor};">${formattedTime}</span>`;
+            });
+
+            // UPDATE METRIK WAKTU DI DASHBOARD RINGKASAN
+            const calcDashboardTimes = (data, timeKey) => {
+                let maxMs = -1, totalMs = 0, count = 0;
+                data.forEach(u => {
+                    if(u[timeKey] && u[timeKey] !== "-") {
+                        let st = new Date(u[timeKey].replace(' ', 'T')).getTime();
+                        if(!isNaN(st)) {
+                            let diff = now.getTime() - st;
+                            if(diff > 0) {
+                                if(diff > maxMs) maxMs = diff;
+                                totalMs += diff;
+                                count++;
+                            }
+                        }
+                    }
+                });
+                return { max: maxMs > 0 ? maxMs : 0, avg: count > 0 ? totalMs / count : 0 };
+            };
+
+            const t1Times = calcDashboardTimes(window.globalDataT1, 'daftar');
+            const t2Times = calcDashboardTimes(window.globalDataT2, 'timbang1');
+
+            document.getElementById('sum-t1-avg').innerText = formatMs(t1Times.avg);
+            document.getElementById('sum-t1-max').innerText = formatMs(t1Times.max);
+            document.getElementById('sum-t2-avg').innerText = formatMs(t2Times.avg);
+            document.getElementById('sum-t2-max').innerText = formatMs(t2Times.max);
+
+        }, 1000);
+
+        // --- UPDATE DASHBOARD RINGKASAN (ANGKA / TOTAL) ---
+        function updateSummaryDashboardCounts() {
+            const t1 = window.globalDataT1;
+            const t2 = window.globalDataT2;
+
+            document.getElementById('sum-t1-total').innerText = t1.length;
+            document.getElementById('sum-t1-local').innerText = t1.filter(u => u.type.toUpperCase().includes('LOCAL')).length;
+            document.getElementById('sum-t1-export').innerText = t1.filter(u => u.type.toUpperCase().includes('EXPORT')).length;
+
+            document.getElementById('sum-t2-total').innerText = t2.length;
+            document.getElementById('sum-t2-local').innerText = t2.filter(u => u.type.toUpperCase().includes('LOCAL')).length;
+            document.getElementById('sum-t2-export').innerText = t2.filter(u => u.type.toUpperCase().includes('EXPORT')).length;
+        }
+
+        // --- LOGIKA EXCEL FILTER ---
+        function closeAllFilters() {
+            document.querySelectorAll('.excel-filter-menu').forEach(menu => menu.classList.remove('show'));
+            document.querySelectorAll('th').forEach(th => th.style.zIndex = '10');
+        }
+
+        function toggleFilter(event, tableType, colId) {
+            event.stopPropagation();
+            const menuId = `menu-${tableType}-${colId}`;
+            const targetMenu = document.getElementById(menuId);
+            const parentTh = targetMenu.closest('th');
+
+            document.querySelectorAll('.excel-filter-menu').forEach(menu => {
+                if(menu.id !== menuId) menu.classList.remove('show');
+            });
+            document.querySelectorAll('th').forEach(th => th.style.zIndex = '10');
+
+            if(targetMenu.classList.contains('show')) {
+                targetMenu.classList.remove('show');
+            } else {
+                const sourceData = tableType === 'belum-t1' ? window.globalDataT1 : window.globalDataT2;
+                let uniqueValues = new Set();
+                sourceData.forEach(unit => {
+                    let val = "";
+                    if(colId === 'nopol_driver') val = `${unit.nopol} | ${unit.sopir}`;
+                    else if(colId === 'tujuan_jenis') val = `${unit.tujuan} | ${unit.jenis}`;
+                    else if(colId === 'po_sj') val = `${unit.po} | ${unit.sj}`;
+                    else val = String(unit[colId] || "-");
+                    uniqueValues.add(val);
+                });
+
+                const sortedValues = Array.from(uniqueValues).sort();
+                const currentSelected = activeFilters[tableType][colId] || [];
+
+                let html = `
+                    <div class="filter-search">
+                        <input type="text" placeholder="Cari nilai..." onkeyup="searchFilterOptions(this)">
+                    </div>
+                    <div class="filter-options" id="options-${tableType}-${colId}">
+                        <div class="filter-option-item">
+                            <input type="checkbox" id="selectAll-${tableType}-${colId}" onchange="toggleSelectAll(this, '${tableType}', '${colId}')" ${currentSelected.length === 0 ? 'checked' : ''}>
+                            <label for="selectAll-${tableType}-${colId}"><strong>(Pilih Semua)</strong></label>
+                        </div>
+                        <hr style="margin:5px 0; border:0; border-top:1px solid #eee;">
+                `;
+
+                sortedValues.forEach((val, idx) => {
+                    const isChecked = currentSelected.length === 0 || currentSelected.includes(val) ? 'checked' : '';
+                    html += `
+                        <div class="filter-option-item cb-item">
+                            <input type="checkbox" class="cb-val-${tableType}-${colId}" value="${val}" id="cb-${tableType}-${colId}-${idx}" ${isChecked}>
+                            <label for="cb-${tableType}-${colId}-${idx}" title="${val}">${val}</label>
+                        </div>
+                    `;
+                });
+
+                html += `
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-filter btn-clear" onclick="clearColumnFilter('${tableType}', '${colId}')">Hapus</button>
+                        <button class="btn-filter btn-apply" onclick="applyColumnFilter('${tableType}', '${colId}')">Terapkan</button>
+                    </div>
+                `;
+
+                targetMenu.innerHTML = html;
+                targetMenu.classList.add('show');
+                if(parentTh) parentTh.style.zIndex = '100';
+            }
+        }
+
+        function searchFilterOptions(inputEl) {
+            const keyword = inputEl.value.toLowerCase();
+            const items = inputEl.parentElement.nextElementSibling.querySelectorAll('.cb-item');
+            items.forEach(item => {
+                const label = item.querySelector('label').innerText.toLowerCase();
+                item.style.display = label.includes(keyword) ? 'flex' : 'none';
+            });
+        }
+
+        function toggleSelectAll(selectAllCb, tableType, colId) {
+            document.querySelectorAll(`.cb-val-${tableType}-${colId}`).forEach(cb => {
+                if(cb.parentElement.style.display !== 'none') cb.checked = selectAllCb.checked;
+            });
+        }
+
+        function applyColumnFilter(tableType, colId) {
+            const checkboxes = document.querySelectorAll(`.cb-val-${tableType}-${colId}`);
+            let selectedValues = [], allChecked = true;
+            checkboxes.forEach(cb => {
+                if (cb.checked) selectedValues.push(cb.value);
+                else allChecked = false;
+            });
+
+            if (allChecked || selectedValues.length === 0) delete activeFilters[tableType][colId];
+            else activeFilters[tableType][colId] = selectedValues;
+
+            closeAllFilters();
+            renderHeaders(); 
+            runDataFilterAndRender(tableType);
+        }
+
+        function clearColumnFilter(tableType, colId) {
+            delete activeFilters[tableType][colId];
+            closeAllFilters();
+            renderHeaders();
+            runDataFilterAndRender(tableType);
+        }
+
+        function runDataFilterAndRender(tableType) {
+            const sourceData = tableType === 'belum-t1' ? window.globalDataT1 : window.globalDataT2;
+            const filters = activeFilters[tableType];
+
+            const filteredData = sourceData.filter(unit => {
+                let isMatch = true;
+                for (const colId in filters) {
+                    const allowedValues = filters[colId];
+                    let cellVal = "";
+                    if(colId === 'nopol_driver') cellVal = `${unit.nopol} | ${unit.sopir}`;
+                    else if(colId === 'tujuan_jenis') cellVal = `${unit.tujuan} | ${unit.jenis}`;
+                    else if(colId === 'po_sj') cellVal = `${unit.po} | ${unit.sj}`;
+                    else cellVal = String(unit[colId] || "-");
+
+                    if (!allowedValues.includes(cellVal)) { isMatch = false; break; }
+                }
+                return isMatch;
+            });
+
+            if (tableType === 'belum-t1') renderTableBody(filteredData, 'tbody-belum-t1', 'badge-belum-t1', 'daftar', 'badge-danger', 'Parkir DCO');
+            else renderTableBody(filteredData, 'tbody-belum-t2', 'badge-belum-t2', 'timbang1', 'badge-warning', 'Loading');
+        }
+
+        // --- LOGIKA PEMBACAAN EXCEL & CSV ---
+        document.getElementById('excelFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('upload-status');
+            statusEl.innerText = "Memproses data...";
+            statusEl.style.backgroundColor = "#e8f8f5";
+            statusEl.style.color = "var(--success)";
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
+                    
+                    prosesDataExcel(jsonRows);
+                    
+                    statusEl.innerHTML = `✅ Data <strong>${file.name}</strong> berhasil dimuat! <br><br> <small>Silakan klik menu <strong>Dashboard Ringkasan</strong> di sebelah kiri.</small>`;
+                    
+                    setTimeout(() => { switchPage('summary'); }, 1000);
+                } catch (error) {
+                    console.error(error);
+                    statusEl.innerText = "❌ Gagal memproses file. Pastikan format benar.";
+                    statusEl.style.backgroundColor = "#fadbd8";
+                    statusEl.style.color = "var(--danger)";
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // --- FUNGSI PROSES DATA ---
+        function prosesDataExcel(rows) {
+            let headerIndex = -1;
+            for(let i=0; i<rows.length; i++) {
+                if(rows[i] && rows[i].includes('No Polisi') && rows[i].includes('Tanggal Daftar')) {
+                    headerIndex = i; break;
+                }
+            }
+            if(headerIndex === -1) { alert("Format kolom tidak dikenali."); return; }
+
+            const headers = rows[headerIndex];
+            const idxIml = headers.indexOf('No IML'); const idxType = headers.indexOf('Type');
+            const idxNopol = headers.indexOf('No Polisi'); const idxSopir = headers.indexOf('Sopir');
+            const idxDaftar = headers.indexOf('Tanggal Daftar'); const idxTimbang1 = headers.indexOf('Tanggal Timbang 1');
+            const idxTimbang2 = headers.indexOf('Tanggal Timbang 2'); const idxTujuan = headers.indexOf('Tujuan');
+            const idxJenis = headers.indexOf('Jenis Barang'); const idxKendaraan = headers.indexOf('Jenis Kendaraan');
+            const idxEkspedisi = headers.indexOf('Ekspedisi'); const idxSupplier = headers.indexOf('Supplier');
+            const idxPo = headers.indexOf('PO'); const idxSj = headers.indexOf('SJ');
+
+            window.globalDataT1 = [];
+            window.globalDataT2 = [];
+            window.activeFilters = { 'belum-t1': {}, 'belum-t2': {} };
+            renderHeaders(); 
+
+            for (let i = headerIndex + 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length <= idxTimbang1) continue; 
+
+                const nopol = String(row[idxNopol] || "").trim();
+                const tujuan = String(row[idxTujuan] || "").trim();
+                const jenis = String(row[idxJenis] || "").trim();
+
+                if(nopol === "" || nopol === "undefined") continue;
+
+                if (tujuan.toUpperCase() !== "MUAT" || !jenis.toUpperCase().includes("BROWN PAPER BM 3")) {
+                    continue; 
+                }
+
+                const unitData = {
+                    iml: String(row[idxIml] || "-").trim(),
+                    type: String(row[idxType] || "-").trim(),
+                    nopol: nopol,
+                    sopir: String(row[idxSopir] || "-").trim(),
+                    daftar: String(row[idxDaftar] || "").trim(),
+                    timbang1: String(row[idxTimbang1] || "").trim(),
+                    timbang2: String(row[idxTimbang2] || "").trim(),
+                    tujuan: tujuan,
+                    jenis: jenis,
+                    kendaraan: String(row[idxKendaraan] || "-").trim(),
+                    ekspedisi: String(row[idxEkspedisi] || "-").trim(),
+                    supplier: String(row[idxSupplier] || "-").trim(),
+                    po: String(row[idxPo] || "-").trim(),
+                    sj: String(row[idxSj] || "-").trim()
+                };
+
+                if (unitData.daftar !== "" && unitData.timbang1 === "") window.globalDataT1.push(unitData);
+                else if (unitData.timbang1 !== "" && unitData.timbang2 === "") window.globalDataT2.push(unitData);
+            }
+
+            runDataFilterAndRender('belum-t1');
+            runDataFilterAndRender('belum-t2');
+            updateSummaryDashboardCounts();
+        }
+
+        // --- FUNGSI RENDER ISI TABEL SAJA ---
+        function renderTableBody(dataArray, tbodyId, badgeId, timeKey, badgeClass, badgeText) {
+            const tbody = document.getElementById(tbodyId);
+            document.getElementById(badgeId).innerText = dataArray.length;
+            tbody.innerHTML = ''; 
+
+            if (dataArray.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="empty-state">Tidak ada armada / filter tidak menemukan hasil.</td></tr>`;
+                return;
+            }
+
+            dataArray.forEach((unit, index) => {
+                const row = document.createElement('tr');
+                const rawTimeStr = unit[timeKey]; 
+                
+                let waktuTampil = rawTimeStr;
+                let tanggalTampil = "";
+                
+                if (waktuTampil && waktuTampil.length > 10) {
+                    tanggalTampil = waktuTampil.substring(0, 10);
+                    waktuTampil = waktuTampil.substring(11, 16);
+                } else if (!waktuTampil) {
+                    waktuTampil = "-";
+                }
+
+                row.innerHTML = `
+                    <td style="text-align: center; color: var(--primary);"><strong>${index + 1}</strong></td>
+                    <td><strong>${unit.iml}</strong></td>
+                    <td><span class="badge badge-type">${unit.type}</span></td>
+                    <td><strong>${unit.nopol}</strong><br><small style="color:#7f8c8d;">${unit.sopir}</small></td>
+                    <td><strong>${waktuTampil}</strong><br><small style="color:#7f8c8d;">${tanggalTampil}</small></td>
+                    <td class="elapsed-time" data-start="${rawTimeStr}">...</td>
+                    <td><strong>${unit.tujuan}</strong><br><small style="color:#7f8c8d;">${unit.jenis}</small></td>
+                    <td>${unit.kendaraan}</td>
+                    <td>${unit.ekspedisi}</td>
+                    <td>${unit.supplier}</td>
+                    <td><strong>${unit.po}</strong><br><small style="color:#7f8c8d;">${unit.sj}</small></td>
+                    <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
