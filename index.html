@@ -99,7 +99,7 @@
         .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
         .card-header-flex h3 { margin: 0; color: var(--primary); }
         
-        /* WIDGET SUMMARY */
+        /* DASHBOARD SUMMARY WIDGETS */
         .summary-grid { display: flex; flex-direction: column; gap: 20px; }
         .summary-section { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; }
         .summary-section h4 { margin-top: 0; margin-bottom: 15px; color: var(--primary); border-bottom: 2px solid #ddd; padding-bottom: 8px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;}
@@ -120,7 +120,25 @@
         .btn-png { background-color: var(--success); }
         .btn-png:hover { background-color: #219653; }
 
-        .upload-box { border: 2px dashed #bdc3c7; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; margin-top: 20px;}
+        /* AREA SMART PASTE */
+        .paste-area {
+            width: 100%;
+            height: 250px;
+            border: 3px dashed var(--active-blue);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+            background-color: #fdfdfd;
+            transition: all 0.3s;
+        }
+        .paste-area:focus { outline: none; border-color: var(--success); background-color: #f4fff8; box-shadow: 0 0 10px rgba(39, 174, 96, 0.2);}
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;}
+        .btn-process { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.3s;}
+        .btn-process:hover { background: var(--success); }
+
+        .upload-box { border: 2px dashed #bdc3c7; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center;}
         .upload-box:hover { border-color: var(--success); background-color: #f4fff8; }
         
         /* TABLE SETTINGS */
@@ -164,7 +182,7 @@
 
         /* KODE KHUSUS UNTUK PRINT / SAVE TO PDF AGAR RAPI */
         @media print {
-            .sidebar, .topbar, .upload-box, .header-actions, .filter-icon { display: none !important; }
+            .sidebar, .topbar, .upload-box, .header-actions, .filter-icon, .paste-area, .btn-process { display: none !important; }
             .main-wrapper { display: block !important; overflow: visible !important; }
             .content-area { padding: 0 !important; overflow: visible !important; }
             .card { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important;}
@@ -197,8 +215,8 @@
                 <span class="menu-text">Dashboard Ringkasan</span>
             </li>
             <li id="nav-upload" onclick="switchPage('upload')">
-                <span class="menu-icon">📁</span>
-                <span class="menu-text">Upload Data CSV SAP</span>
+                <span class="menu-icon">📥</span>
+                <span class="menu-text">Input Data SAP</span>
             </li>
             <li id="nav-belum-t1" onclick="switchPage('belum-t1')">
                 <span class="menu-icon">🚨</span>
@@ -321,15 +339,30 @@
             <div id="page-upload" class="page-section">
                 <div class="card" style="border-top: 4px solid var(--success);">
                     <div class="card-header">
-                        <h3>Tarik Data dari SAP (Format CSV)</h3>
-                        <p style="color: #7f8c8d; margin-top: 5px; font-size: 0.9rem;">Pastikan laporan dari SAP sudah Anda Save As ke format <strong>CSV (Comma delimited) (*.csv)</strong>.</p>
+                        <h3>Tarik Data dari SAP (Mode Fleksibel)</h3>
+                        <p style="color: #7f8c8d; margin-top: 5px; font-size: 0.9rem;">Anda bisa memakai <b>Opsi 1</b> (Copy-Paste langsung dari Excel/PDF) atau <b>Opsi 2</b> (Upload CSV).</p>
                     </div>
-                    <div class="upload-box" onclick="document.getElementById('csvFileInput').click()">
-                        <div style="font-size: 3rem; margin-bottom: 10px;">📄</div>
-                        <h4 style="margin: 0 0 10px 0;">Klik untuk memilih file CSV</h4>
-                        <p style="margin: 0; color: #7f8c8d;">Pilih file laporan transaksi armada</p>
-                        <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                    
+                    <div class="upload-grid">
+                        <div>
+                            <h4 style="margin-top:0; color: var(--active-blue);">Opsi 1: Copy-Paste Langsung</h4>
+                            <p style="font-size: 0.8rem; color:#7f8c8d; margin-top:-5px;">Buka Excel/PDF, blok semua tabel, Copy (Ctrl+C), lalu klik kotak di bawah dan Paste (Ctrl+V).</p>
+                            <textarea id="pasteInput" class="paste-area" placeholder="Paste data Excel / SAP / PDF Anda di sini...&#10;&#10;Contoh:&#10;No Polisi   Tanggal Daftar   Tujuan&#10;B 1234 XY   2026-04-06       MUAT"></textarea>
+                        </div>
+
+                        <div>
+                            <h4 style="margin-top:0; color: var(--success);">Opsi 2: Upload File .CSV</h4>
+                            <p style="font-size: 0.8rem; color:#7f8c8d; margin-top:-5px;">Atau gunakan cara lama dengan mengunggah file CSV.</p>
+                            <div class="upload-box" onclick="document.getElementById('csvFileInput').click()">
+                                <div style="font-size: 3rem; margin-bottom: 10px;">📄</div>
+                                <h4 style="margin: 0 0 10px 0;">Klik untuk Upload .CSV</h4>
+                                <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                            </div>
+                        </div>
                     </div>
+
+                    <button class="btn-process" onclick="prosesSmartPaste()">🚀 Proses Data Sekarang</button>
+
                     <div id="upload-status" style="margin-top: 20px; text-align: center; font-weight: bold; padding: 15px; border-radius: 5px;"></div>
                 </div>
             </div>
@@ -353,7 +386,7 @@
                                     </tr>
                             </thead>
                             <tbody id="tbody-belum-t1">
-                                <tr><td colspan="12" class="empty-state">Belum ada data. Silakan upload file CSV terlebih dahulu.</td></tr>
+                                <tr><td colspan="12" class="empty-state">Belum ada data. Silakan Input data terlebih dahulu.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -379,7 +412,7 @@
                                     </tr>
                             </thead>
                             <tbody id="tbody-belum-t2">
-                                <tr><td colspan="12" class="empty-state">Belum ada data. Silakan upload file CSV terlebih dahulu.</td></tr>
+                                <tr><td colspan="12" class="empty-state">Belum ada data. Silakan Input data terlebih dahulu.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -410,11 +443,10 @@
         window.globalDataT2 = [];
         window.activeFilters = { 'belum-t1': {}, 'belum-t2': {} };
 
-        // --- FUNGSI CAPTURE KE PNG/JPG (DISEMPURNAKAN DENGAN FAIL-SAFE) ---
+        // --- FUNGSI CAPTURE KE PNG/JPG ---
         function downloadImage(cardId, fileNamePrefix) {
-            // CEK APAKAH HTML2CANVAS BERHASIL DI-LOAD ATAU DIBLOKIR INTERNET KANTOR
             if (typeof html2canvas === 'undefined') {
-                alert("⚠️ AKSES DIBLOKIR JARINGAN KANTOR\n\nFitur membuat file PNG membutuhkan modul eksternal yang diblokir oleh internet kantor Anda.\n\nSolusi:\n1. Gunakan tombol '🖨️ PDF' di sebelahnya.\n2. ATAU buka menggunakan koneksi Hotspot/Tethering HP Anda.");
+                alert("⚠️ AKSES DIBLOKIR JARINGAN KANTOR\n\nFitur membuat PNG membutuhkan modul eksternal yang diblokir oleh internet kantor Anda.\n\nSolusi: Gunakan tombol '🖨️ PDF' di sebelahnya, lalu save sebagai PDF.");
                 return;
             }
 
@@ -428,10 +460,8 @@
             const thElements = cardElement.querySelectorAll('th');
             const actionButtons = cardElement.querySelectorAll('.header-actions');
             
-            let originalOverflow = '';
-            let originalMaxHeight = '';
+            let originalOverflow = '', originalMaxHeight = '';
 
-            // Ekspansi tabel penuh ke bawah
             if (tableResponsive) {
                 originalOverflow = tableResponsive.style.overflow || '';
                 originalMaxHeight = tableResponsive.style.maxHeight || '';
@@ -439,16 +469,13 @@
                 tableResponsive.style.maxHeight = 'none';
             }
 
-            // Matikan Sticky Header
             thElements.forEach(th => {
                 th.dataset.origPosition = th.style.position || '';
                 th.style.position = 'static';
             });
 
-            // Sembunyikan semua tombol PDF/PNG agar tidak ikut terfoto
             actionButtons.forEach(action => action.style.display = 'none');
 
-            // Proses Foto Layar
             setTimeout(() => {
                 html2canvas(cardElement, {
                     scale: 2, 
@@ -458,7 +485,6 @@
                     windowWidth: cardElement.scrollWidth,
                     windowHeight: cardElement.scrollHeight
                 }).then(canvas => {
-                    // Kembalikan Tampilan ke Semula
                     if (tableResponsive) {
                         tableResponsive.style.overflow = originalOverflow;
                         tableResponsive.style.maxHeight = originalMaxHeight;
@@ -468,7 +494,6 @@
                     btn.innerHTML = originalText;
                     btn.disabled = false;
 
-                    // Buat file Download
                     const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
                     const timeStr = new Date().toTimeString().slice(0,8).replace(/:/g, "");
                     const link = document.createElement('a');
@@ -476,10 +501,8 @@
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                 }).catch(err => {
-                    console.error("Gagal mendownload:", err);
-                    alert("Terjadi kesalahan saat memproses gambar.");
-                    
-                    // Kembalikan Tampilan ke Semula jika Gagal
+                    console.error(err);
+                    alert("Terjadi kesalahan sistem saat memfoto layar.");
                     if (tableResponsive) {
                         tableResponsive.style.overflow = originalOverflow;
                         tableResponsive.style.maxHeight = originalMaxHeight;
@@ -532,7 +555,6 @@
             closeAllFilters();
         }
 
-        // --- FUNGSI FORMAT WAKTU MS KE JAM:MENIT:DETIK ---
         function formatMs(ms) {
             if (ms < 0) return "00:00:00";
             const diffHrs = Math.floor(ms / (1000 * 60 * 60));
@@ -550,7 +572,7 @@
                 const startTimeStr = el.getAttribute('data-start');
                 if (!startTimeStr || startTimeStr === "-") return;
                 const startTime = new Date(startTimeStr.replace(' ', 'T'));
-                if (isNaN(startTime.getTime())) { el.innerHTML = `<span class="timer-text">Error</span>`; return; }
+                if (isNaN(startTime.getTime())) return;
 
                 const diffMs = now.getTime() - startTime.getTime();
                 if (diffMs < 0) { el.innerHTML = `<span class="timer-text">00:00:00</span>`; return; }
@@ -591,7 +613,6 @@
 
         }, 1000);
 
-        // --- UPDATE DASHBOARD RINGKASAN ---
         function updateSummaryDashboardCounts() {
             const t1 = window.globalDataT1;
             const t2 = window.globalDataT2;
@@ -617,9 +638,7 @@
             const targetMenu = document.getElementById(menuId);
             const parentTh = targetMenu.closest('th');
 
-            document.querySelectorAll('.excel-filter-menu').forEach(menu => {
-                if(menu.id !== menuId) menu.classList.remove('show');
-            });
+            document.querySelectorAll('.excel-filter-menu').forEach(menu => { if(menu.id !== menuId) menu.classList.remove('show'); });
             document.querySelectorAll('th').forEach(th => th.style.zIndex = '10');
 
             if(targetMenu.classList.contains('show')) {
@@ -640,9 +659,7 @@
                 const currentSelected = activeFilters[tableType][colId] || [];
 
                 let html = `
-                    <div class="filter-search">
-                        <input type="text" placeholder="Cari nilai..." onkeyup="searchFilterOptions(this)">
-                    </div>
+                    <div class="filter-search"><input type="text" placeholder="Cari nilai..." onkeyup="searchFilterOptions(this)"></div>
                     <div class="filter-options" id="options-${tableType}-${colId}">
                         <div class="filter-option-item">
                             <input type="checkbox" id="selectAll-${tableType}-${colId}" onchange="toggleSelectAll(this, '${tableType}', '${colId}')" ${currentSelected.length === 0 ? 'checked' : ''}>
@@ -661,13 +678,11 @@
                     `;
                 });
 
-                html += `
-                    </div>
+                html += `</div>
                     <div class="filter-actions">
                         <button class="btn-filter btn-clear" onclick="clearColumnFilter('${tableType}', '${colId}')">Hapus</button>
                         <button class="btn-filter btn-apply" onclick="applyColumnFilter('${tableType}', '${colId}')">Terapkan</button>
-                    </div>
-                `;
+                    </div>`;
 
                 targetMenu.innerHTML = html;
                 targetMenu.classList.add('show');
@@ -678,10 +693,7 @@
         function searchFilterOptions(inputEl) {
             const keyword = inputEl.value.toLowerCase();
             const items = inputEl.parentElement.nextElementSibling.querySelectorAll('.cb-item');
-            items.forEach(item => {
-                const label = item.querySelector('label').innerText.toLowerCase();
-                item.style.display = label.includes(keyword) ? 'flex' : 'none';
-            });
+            items.forEach(item => { item.style.display = item.querySelector('label').innerText.toLowerCase().includes(keyword) ? 'flex' : 'none'; });
         }
 
         function toggleSelectAll(selectAllCb, tableType, colId) {
@@ -693,24 +705,16 @@
         function applyColumnFilter(tableType, colId) {
             const checkboxes = document.querySelectorAll(`.cb-val-${tableType}-${colId}`);
             let selectedValues = [], allChecked = true;
-            checkboxes.forEach(cb => {
-                if (cb.checked) selectedValues.push(cb.value);
-                else allChecked = false;
-            });
+            checkboxes.forEach(cb => { if (cb.checked) selectedValues.push(cb.value); else allChecked = false; });
 
             if (allChecked || selectedValues.length === 0) delete activeFilters[tableType][colId];
             else activeFilters[tableType][colId] = selectedValues;
 
-            closeAllFilters();
-            renderHeaders(); 
-            runDataFilterAndRender(tableType);
+            closeAllFilters(); renderHeaders(); runDataFilterAndRender(tableType);
         }
 
         function clearColumnFilter(tableType, colId) {
-            delete activeFilters[tableType][colId];
-            closeAllFilters();
-            renderHeaders();
-            runDataFilterAndRender(tableType);
+            delete activeFilters[tableType][colId]; closeAllFilters(); renderHeaders(); runDataFilterAndRender(tableType);
         }
 
         function runDataFilterAndRender(tableType) {
@@ -726,7 +730,6 @@
                     else if(colId === 'tujuan_jenis') cellVal = `${unit.tujuan} | ${unit.jenis}`;
                     else if(colId === 'po_sj') cellVal = `${unit.po} | ${unit.sj}`;
                     else cellVal = String(unit[colId] || "-");
-
                     if (!allowedValues.includes(cellVal)) { isMatch = false; break; }
                 }
                 return isMatch;
@@ -736,50 +739,28 @@
             else renderTableBody(filteredData, 'tbody-belum-t2', 'badge-belum-t2', 'timbang1', 'badge-warning', 'Loading');
         }
 
-
-        // --- LOGIKA PEMBACAAN CSV MURNI (OFFLINE / FILE READER) ---
-        document.getElementById('csvFileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const statusEl = document.getElementById('upload-status');
-            statusEl.innerText = "Memproses data...";
-            statusEl.style.backgroundColor = "#e8f8f5";
-            statusEl.style.color = "var(--success)";
-
-            const reader = new FileReader();
-            
-            reader.onload = function(event) {
-                try {
-                    const csvText = event.target.result;
-                    prosesDataCSV(csvText);
-                    
-                    statusEl.innerHTML = `✅ Data <strong>${file.name}</strong> berhasil dimuat! <br><br> <small>Silakan klik menu <strong>Dashboard Ringkasan</strong> di sebelah kiri.</small>`;
-                    setTimeout(() => { switchPage('summary'); }, 1000);
-                } catch (error) {
-                    console.error(error);
-                    statusEl.innerText = "❌ Gagal memproses file. Pastikan format file adalah CSV.";
-                    statusEl.style.backgroundColor = "#fadbd8";
-                    statusEl.style.color = "var(--danger)";
-                }
-            };
-            
-            reader.readAsText(file);
-        });
-
-        // --- FUNGSI PROSES DATA CSV MURNI ---
-        function prosesDataCSV(csvText) {
-            const lines = csvText.split('\n').filter(line => line.trim() !== '');
-            
+        // ==========================================
+        // SMART PARSER: MENGOLAH PASTE ATAU CSV FILE
+        // ==========================================
+        function parseLaporanData(lines, separator) {
             let headerIndex = -1;
             for(let i=0; i<lines.length; i++) {
                 if(lines[i].includes('No Polisi') && lines[i].includes('Tanggal Daftar')) {
                     headerIndex = i; break;
                 }
             }
-            if(headerIndex === -1) { alert("Format kolom tidak dikenali. Pastikan ini format CSV asli."); return; }
+            if(headerIndex === -1) { 
+                alert("Gagal membaca tabel. Pastikan baris Header ('No Polisi', 'Tanggal Daftar', dll) ikut tercopy/ada di file."); 
+                return false; 
+            }
 
-            const headers = lines[headerIndex].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/^"|"$/g, '').trim());
+            // Membaca nama kolom
+            let headers = [];
+            if(separator === 'csv') {
+                headers = lines[headerIndex].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/^"|"$/g, '').trim());
+            } else {
+                headers = lines[headerIndex].split('\t').map(h => h.trim());
+            }
             
             const idxIml = headers.indexOf('No IML'); const idxType = headers.indexOf('Type');
             const idxNopol = headers.indexOf('No Polisi'); const idxSopir = headers.indexOf('Sopir');
@@ -795,8 +776,12 @@
             renderHeaders(); 
 
             for (let i = headerIndex + 1; i < lines.length; i++) {
-                const rawRow = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                const row = rawRow.map(val => val ? val.replace(/^"|"$/g, '').trim() : "");
+                let row = [];
+                if(separator === 'csv') {
+                    row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val ? val.replace(/^"|"$/g, '').trim() : "");
+                } else {
+                    row = lines[i].split('\t').map(val => val ? val.trim() : "");
+                }
                 
                 if (!row || row.length <= idxTimbang1) continue; 
 
@@ -805,26 +790,15 @@
                 const jenis = String(row[idxJenis] || "").trim();
 
                 if(nopol === "" || nopol === "undefined") continue;
-
-                if (tujuan.toUpperCase() !== "MUAT" || !jenis.toUpperCase().includes("BROWN PAPER BM 3")) {
-                    continue; 
-                }
+                if (tujuan.toUpperCase() !== "MUAT" || !jenis.toUpperCase().includes("BROWN PAPER BM 3")) continue; 
 
                 const unitData = {
-                    iml: String(row[idxIml] || "-").trim(),
-                    type: String(row[idxType] || "-").trim(),
-                    nopol: nopol,
-                    sopir: String(row[idxSopir] || "-").trim(),
-                    daftar: String(row[idxDaftar] || "").trim(),
-                    timbang1: String(row[idxTimbang1] || "").trim(),
-                    timbang2: String(row[idxTimbang2] || "").trim(),
-                    tujuan: tujuan,
-                    jenis: jenis,
-                    kendaraan: String(row[idxKendaraan] || "-").trim(),
-                    ekspedisi: String(row[idxEkspedisi] || "-").trim(),
-                    supplier: String(row[idxSupplier] || "-").trim(),
-                    po: String(row[idxPo] || "-").trim(),
-                    sj: String(row[idxSj] || "-").trim()
+                    iml: String(row[idxIml] || "-").trim(), type: String(row[idxType] || "-").trim(),
+                    nopol: nopol, sopir: String(row[idxSopir] || "-").trim(),
+                    daftar: String(row[idxDaftar] || "").trim(), timbang1: String(row[idxTimbang1] || "").trim(),
+                    timbang2: String(row[idxTimbang2] || "").trim(), tujuan: tujuan, jenis: jenis,
+                    kendaraan: String(row[idxKendaraan] || "-").trim(), ekspedisi: String(row[idxEkspedisi] || "-").trim(),
+                    supplier: String(row[idxSupplier] || "-").trim(), po: String(row[idxPo] || "-").trim(), sj: String(row[idxSj] || "-").trim()
                 };
 
                 if (unitData.daftar !== "" && unitData.timbang1 === "") window.globalDataT1.push(unitData);
@@ -834,7 +808,71 @@
             runDataFilterAndRender('belum-t1');
             runDataFilterAndRender('belum-t2');
             updateSummaryDashboardCounts();
+            return true;
         }
+
+        // OPSI 1: PROSES DATA PASTE EXCEL/PDF (Membaca spasi tab antar kolom)
+        function prosesSmartPaste() {
+            const pasteArea = document.getElementById('pasteInput');
+            const text = pasteArea.value;
+            const statusEl = document.getElementById('upload-status');
+
+            if(text.trim() === "") {
+                alert("Kotak teks masih kosong. Silakan paste data Excel Anda terlebih dahulu.");
+                return;
+            }
+
+            statusEl.innerText = "Memproses teks...";
+            statusEl.style.backgroundColor = "#e8f8f5";
+            statusEl.style.color = "var(--success)";
+
+            // Excel meng-copy kolom dengan separator 'Tab' (\t)
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const isSuccess = parseLaporanData(lines, 'paste');
+
+            if(isSuccess) {
+                statusEl.innerHTML = `✅ Data berhasil dibaca dari teks!<br><br> <small>Melompat ke Dashboard Ringkasan...</small>`;
+                pasteArea.value = ""; // Bersihkan kotak jika sukses
+                setTimeout(() => { switchPage('summary'); }, 1000);
+            } else {
+                statusEl.innerText = "❌ Gagal memproses teks. Format kolom tidak sesuai standar laporan.";
+                statusEl.style.backgroundColor = "#fadbd8";
+                statusEl.style.color = "var(--danger)";
+            }
+        }
+
+        // OPSI 2: UPLOAD CSV MURNI (Membaca koma)
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('upload-status');
+            statusEl.innerText = "Memproses file CSV...";
+            statusEl.style.backgroundColor = "#e8f8f5";
+            statusEl.style.color = "var(--success)";
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const csvText = event.target.result;
+                    const lines = csvText.split('\n').filter(line => line.trim() !== '');
+                    const isSuccess = parseLaporanData(lines, 'csv');
+                    
+                    if(isSuccess) {
+                        statusEl.innerHTML = `✅ Data <strong>${file.name}</strong> berhasil dimuat! <br><br> <small>Melompat ke Dashboard Ringkasan...</small>`;
+                        setTimeout(() => { switchPage('summary'); }, 1000);
+                    } else {
+                        throw new Error("Invalid Header");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    statusEl.innerText = "❌ Gagal memproses file. Pastikan format file adalah CSV SAP asli.";
+                    statusEl.style.backgroundColor = "#fadbd8";
+                    statusEl.style.color = "var(--danger)";
+                }
+            };
+            reader.readAsText(file);
+        });
 
         // --- FUNGSI RENDER ISI TABEL SAJA ---
         function renderTableBody(dataArray, tbodyId, badgeId, timeKey, badgeClass, badgeText) {
